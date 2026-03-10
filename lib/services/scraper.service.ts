@@ -14,37 +14,37 @@ export type ScrapeCriteria = {
   maxResults: number;
 };
 
-export function buildActorInput(criteria: ScrapeCriteria) {
-  const takePages = Math.max(1, Math.ceil(criteria.maxResults / 25));
+function wrapMultiWord(term: string): string {
+  return term.includes(' ') ? `"${term}"` : term;
+}
 
-  // Use structured filters for precise targeting of current professionals
-  // title: filters by current job title (not job seekers)
-  const title = criteria.titles.join(', ');
+function buildOrGroup(items: string[]): string {
+  if (items.length === 0) return '';
+  if (items.length === 1) return wrapMultiWord(items[0]);
+  return `(${items.map(wrapMultiWord).join(' OR ')})`;
+}
 
-  // keywordsCompany: matches company names/descriptions
-  const keywordsCompany = [
-    ...criteria.sectors,
-    ...criteria.companies,
-  ].filter(Boolean).join(', ');
+// Build searchQuery for the Apify actor (harvestapi/linkedin-profile-search)
+// The actor uses searchQuery (text) + locations (array), not granular API filters.
+// Query structure: titles OR'd + sectors OR'd + ICP terms AND'd + companies OR'd
+export function buildSearchQuery(criteria: ScrapeCriteria): string {
+  const parts: string[] = [];
 
-  // search: ICP criteria combined with AND (space-separated = all must match)
-  // e.g. "innovation R&D design" means profiles matching ALL these terms
-  const search = criteria.companyProfile.length > 0
-    ? criteria.companyProfile.join(' ')
-    : undefined;
+  // Titles as OR group — matches current position holders
+  if (criteria.titles.length > 0) parts.push(buildOrGroup(criteria.titles));
 
-  // location: text-based location filter
-  const location = criteria.locations.length > 0
-    ? criteria.locations.join(', ')
-    : undefined;
+  // Sectors as OR group — matches company type
+  if (criteria.sectors.length > 0) parts.push(buildOrGroup(criteria.sectors));
 
-  return {
-    title,
-    ...(keywordsCompany && { keywordsCompany }),
-    ...(search && { search }),
-    ...(location && { location }),
-    takePages,
-  };
+  // ICP profile: each term is AND'd (space-separated = all must match)
+  if (criteria.companyProfile.length > 0) {
+    parts.push(criteria.companyProfile.map(wrapMultiWord).join(' '));
+  }
+
+  // Specific companies as OR group
+  if (criteria.companies.length > 0) parts.push(buildOrGroup(criteria.companies));
+
+  return parts.join(' ') || 'CEO';
 }
 
 export async function startScrape(criteria: ScrapeCriteria) {
@@ -58,10 +58,11 @@ export async function startScrape(criteria: ScrapeCriteria) {
     .returning();
 
   try {
-    const actorInput = buildActorInput(criteria);
+    const searchQuery = buildSearchQuery(criteria);
     const takePages = Math.max(1, Math.ceil(criteria.maxResults / 25));
     const runResult = await runActor(DEFAULT_ACTOR_ID, {
-      ...actorInput,
+      searchQuery,
+      locations: criteria.locations,
       takePages,
     });
 
