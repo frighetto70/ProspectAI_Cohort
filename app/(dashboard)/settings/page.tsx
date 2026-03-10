@@ -13,30 +13,31 @@ type JobStatus = {
   error?: string;
 };
 
-function wrapMultiWord(term: string): string {
-  return term.includes(' ') ? `"${term}"` : term;
-}
+type FilterPreview = {
+  title: string;
+  keywordsCompany?: string;
+  search?: string;
+  location?: string;
+};
 
-function buildOrGroup(items: string[]): string {
-  if (items.length === 0) return '';
-  if (items.length === 1) return wrapMultiWord(items[0]);
-  return `(${items.map(wrapMultiWord).join(' OR ')})`;
-}
-
-function buildPreviewQuery(
+function buildFilterPreview(
   titles: string[],
   sectors: string[],
   companyProfile: string[],
   companies: string[],
   locations: string[],
-): string {
-  const parts: string[] = [];
-  if (titles.length > 0) parts.push(buildOrGroup(titles));
-  if (sectors.length > 0) parts.push(buildOrGroup(sectors));
-  if (companyProfile.length > 0) parts.push(buildOrGroup(companyProfile));
-  if (companies.length > 0) parts.push(buildOrGroup(companies));
-  if (locations.length > 0) parts.push(buildOrGroup(locations));
-  return parts.join(' ') || '(nenhum critério)';
+): FilterPreview {
+  const title = titles.join(', ');
+  const keywordsCompany = [...sectors, ...companies].filter(Boolean).join(', ');
+  const search = companyProfile.length > 0 ? companyProfile.join(' ') : undefined;
+  const location = locations.length > 0 ? locations.join(', ') : undefined;
+
+  return {
+    title,
+    ...(keywordsCompany && { keywordsCompany }),
+    ...(search && { search }),
+    ...(location && { location }),
+  };
 }
 
 export default function SettingsPage() {
@@ -56,9 +57,9 @@ export default function SettingsPage() {
       .map((s) => s.trim())
       .filter(Boolean);
 
-  const previewQuery = useMemo(
+  const filterPreview = useMemo(
     () =>
-      buildPreviewQuery(
+      buildFilterPreview(
         parseTextarea(titles),
         parseTextarea(sectors),
         parseTextarea(companyProfile),
@@ -215,11 +216,22 @@ export default function SettingsPage() {
             />
           </div>
 
-          <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
-            <label className="block text-xs font-medium text-gray-500 mb-1">
-              Preview da query LinkedIn
+          <div className="p-3 bg-gray-50 rounded-lg border border-gray-200 space-y-1">
+            <label className="block text-xs font-medium text-gray-500 mb-2">
+              Filtros que serão enviados ao LinkedIn
             </label>
-            <p className="text-sm text-gray-800 font-mono break-words">{previewQuery}</p>
+            <div className="text-sm text-gray-800 font-mono break-words space-y-1">
+              <p><span className="text-gray-500">Cargo atual:</span> {filterPreview.title || '(vazio)'}</p>
+              {filterPreview.keywordsCompany && (
+                <p><span className="text-gray-500">Empresa/Setor:</span> {filterPreview.keywordsCompany}</p>
+              )}
+              {filterPreview.search && (
+                <p><span className="text-gray-500">Perfil:</span> {filterPreview.search}</p>
+              )}
+              {filterPreview.location && (
+                <p><span className="text-gray-500">Local:</span> {filterPreview.location}</p>
+              )}
+            </div>
           </div>
 
           <Button

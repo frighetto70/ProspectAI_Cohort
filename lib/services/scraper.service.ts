@@ -14,23 +14,36 @@ export type ScrapeCriteria = {
   maxResults: number;
 };
 
-function wrapMultiWord(term: string): string {
-  return term.includes(' ') ? `"${term}"` : term;
-}
+export function buildActorInput(criteria: ScrapeCriteria) {
+  const takePages = Math.max(1, Math.ceil(criteria.maxResults / 25));
 
-function buildOrGroup(items: string[]): string {
-  if (items.length === 0) return '';
-  if (items.length === 1) return wrapMultiWord(items[0]);
-  return `(${items.map(wrapMultiWord).join(' OR ')})`;
-}
+  // Use structured filters for precise targeting of current professionals
+  // title: filters by current job title (not job seekers)
+  const title = criteria.titles.join(', ');
 
-export function buildSearchQuery(criteria: ScrapeCriteria): string {
-  const parts: string[] = [];
-  if (criteria.titles.length > 0) parts.push(buildOrGroup(criteria.titles));
-  if (criteria.sectors.length > 0) parts.push(buildOrGroup(criteria.sectors));
-  if (criteria.companyProfile.length > 0) parts.push(buildOrGroup(criteria.companyProfile));
-  if (criteria.companies.length > 0) parts.push(buildOrGroup(criteria.companies));
-  return parts.join(' ') || 'CEO';
+  // keywordsCompany: matches company names/descriptions
+  const keywordsCompany = [
+    ...criteria.sectors,
+    ...criteria.companies,
+  ].filter(Boolean).join(', ');
+
+  // search: general profile keywords (company profile traits)
+  const search = criteria.companyProfile.length > 0
+    ? criteria.companyProfile.join(' ')
+    : undefined;
+
+  // location: text-based location filter
+  const location = criteria.locations.length > 0
+    ? criteria.locations.join(', ')
+    : undefined;
+
+  return {
+    title,
+    ...(keywordsCompany && { keywordsCompany }),
+    ...(search && { search }),
+    ...(location && { location }),
+    takePages,
+  };
 }
 
 export async function startScrape(criteria: ScrapeCriteria) {
@@ -44,12 +57,10 @@ export async function startScrape(criteria: ScrapeCriteria) {
     .returning();
 
   try {
-    const searchQuery = buildSearchQuery(criteria);
-    // takePages: each page has ~25 results
+    const actorInput = buildActorInput(criteria);
     const takePages = Math.max(1, Math.ceil(criteria.maxResults / 25));
     const runResult = await runActor(DEFAULT_ACTOR_ID, {
-      searchQuery,
-      locations: criteria.locations,
+      ...actorInput,
       takePages,
     });
 
