@@ -76,9 +76,9 @@ export function ProspectTable({ prospects, selectedIds, onSelectionChange }: Pro
               className="rounded border-gray-300"
             />
           </TableHead>
-          <TableHead>Nome</TableHead>
-          <TableHead>Cargo</TableHead>
           <TableHead>Empresa</TableHead>
+          <TableHead>Contato</TableHead>
+          <TableHead>Cargo</TableHead>
           <TableHead>Status</TableHead>
           <TableHead>Data</TableHead>
         </TableRow>
@@ -97,13 +97,16 @@ export function ProspectTable({ prospects, selectedIds, onSelectionChange }: Pro
             <TableCell>
               <Link
                 href={`/prospects/${prospect.id}`}
-                className="text-[#1e3a5f] font-medium hover:underline"
+                className="text-[#1e3a5f] font-semibold hover:underline"
               >
-                {prospect.name}
+                {prospect.company || 'Empresa desconhecida'}
               </Link>
+              {prospect.industry && (
+                <span className="text-xs text-gray-400 ml-1">· {prospect.industry}</span>
+              )}
             </TableCell>
+            <TableCell className="text-gray-600">{prospect.name}</TableCell>
             <TableCell className="text-gray-600">{prospect.title || '—'}</TableCell>
-            <TableCell className="text-gray-600">{prospect.company || '—'}</TableCell>
             <TableCell>
               <Badge variant="secondary" className={statusColors[prospect.status] || ''}>
                 {statusLabels[prospect.status] || prospect.status}

@@ -27,7 +27,8 @@ export function buildActorInput(criteria: ScrapeCriteria) {
     ...criteria.companies,
   ].filter(Boolean).join(', ');
 
-  // search: general profile keywords (company profile traits)
+  // search: ICP criteria combined with AND (space-separated = all must match)
+  // e.g. "innovation R&D design" means profiles matching ALL these terms
   const search = criteria.companyProfile.length > 0
     ? criteria.companyProfile.join(' ')
     : undefined;

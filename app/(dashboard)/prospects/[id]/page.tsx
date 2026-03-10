@@ -72,16 +72,16 @@ export default async function ProspectDetailPage({ params }: PageParams) {
       {/* Header */}
       <div className="mb-6">
         <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-bold text-gray-900">{prospect.name}</h1>
+          <h1 className="text-2xl font-bold text-gray-900">
+            {prospect.company || 'Empresa desconhecida'}
+          </h1>
           <Badge variant="secondary" className={statusColors[prospect.status] || ''}>
             {statusLabels[prospect.status] || prospect.status}
           </Badge>
         </div>
-        {prospect.title && prospect.company && (
-          <p className="text-lg text-gray-600 mt-1">
-            {prospect.title} — {prospect.company}
-          </p>
-        )}
+        <p className="text-lg text-gray-600 mt-1">
+          {[prospect.name, prospect.title].filter(Boolean).join(' — ')}
+        </p>
         {prospect.headline && (
           <p className="text-gray-500 italic mt-1">{prospect.headline}</p>
         )}

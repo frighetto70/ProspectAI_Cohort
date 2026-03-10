@@ -162,7 +162,7 @@ export default function SettingsPage() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Perfil da empresa (um por linha)
+              Perfil da empresa ideal — ICP (um critério por linha)
             </label>
             <textarea
               value={companyProfile}
@@ -172,7 +172,7 @@ export default function SettingsPage() {
               placeholder="innovation&#10;design&#10;R&D&#10;product portfolio"
             />
             <p className="mt-1 text-xs text-gray-500">
-              Palavras-chave que descrevem o perfil ideal (inovação, faturamento, portfolio, etc.)
+              Critérios combinados (E) — a busca retorna empresas que atendem TODOS estes critérios juntos.
             </p>
           </div>
 
@@ -226,7 +226,7 @@ export default function SettingsPage() {
                 <p><span className="text-gray-500">Empresa/Setor:</span> {filterPreview.keywordsCompany}</p>
               )}
               {filterPreview.search && (
-                <p><span className="text-gray-500">Perfil:</span> {filterPreview.search}</p>
+                <p><span className="text-gray-500">ICP (todos juntos):</span> {filterPreview.search}</p>
               )}
               {filterPreview.location && (
                 <p><span className="text-gray-500">Local:</span> {filterPreview.location}</p>

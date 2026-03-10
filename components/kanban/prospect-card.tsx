@@ -27,17 +27,14 @@ export function ProspectCard({ prospect }: { prospect: Prospect }) {
     >
       <Link
         href={`/prospects/${prospect.id}`}
-        className="text-sm font-medium text-[#1e3a5f] hover:underline"
+        className="text-sm font-semibold text-[#1e3a5f] hover:underline"
         onClick={(e) => e.stopPropagation()}
       >
-        {prospect.name}
+        {prospect.company || 'Empresa desconhecida'}
       </Link>
-      {prospect.title && (
-        <p className="text-xs text-gray-500 mt-0.5">{prospect.title}</p>
-      )}
-      {prospect.company && (
-        <p className="text-xs text-gray-400">{prospect.company}</p>
-      )}
+      <p className="text-xs text-gray-500 mt-0.5">
+        {prospect.name}{prospect.title ? ` · ${prospect.title}` : ''}
+      </p>
       <p className="text-[10px] text-gray-300 mt-1">
         {prospect.updatedAt
           ? new Date(prospect.updatedAt).toLocaleDateString('pt-BR')
