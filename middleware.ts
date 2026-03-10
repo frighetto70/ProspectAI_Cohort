@@ -4,7 +4,7 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Skip auth for health check and login page
-  if (pathname === '/api/health' || pathname.startsWith('/login')) {
+  if (pathname === '/api/health' || pathname.startsWith('/login') || pathname === '/api/auth/login') {
     return NextResponse.next();
   }
 
