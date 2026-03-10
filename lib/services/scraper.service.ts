@@ -153,26 +153,41 @@ export async function checkJobStatus(jobId: number) {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function parseApifyItem(item: any): NewProspect {
-  // Build full name from firstName/lastName (HarvestAPI format) or fallback to other formats
-  const name = item.fullName
+  // HarvestAPI returns firstName/lastName separately
+  const name = [item.firstName, item.lastName].filter(Boolean).join(' ')
+    || item.fullName
     || item.name
-    || [item.firstName, item.lastName].filter(Boolean).join(' ')
     || 'Unknown';
 
-  // Extract company from currentPosition (HarvestAPI) or direct fields
-  const company = item.company
+  // currentPosition is an ARRAY in HarvestAPI format
+  const currentPos = Array.isArray(item.currentPosition)
+    ? item.currentPosition[0]
+    : item.currentPosition;
+  const firstExp = Array.isArray(item.experience)
+    ? item.experience[0]
+    : null;
+
+  // Company: currentPosition[0].companyName → experience[0].companyName → headline parse
+  const company = currentPos?.companyName
+    || firstExp?.companyName
     || item.companyName
-    || item.currentPosition?.companyName
+    || item.company
+    || extractCompanyFromHeadline(item.headline)
     || null;
 
-  // Extract title from position/currentPosition (HarvestAPI) or direct fields
-  const title = item.title
+  // Title: experience[0].position → headline parse → currentPosition fallback
+  const title = firstExp?.position
+    || item.title
     || item.jobTitle
     || item.position
-    || item.currentPosition?.title
+    || extractTitleFromHeadline(item.headline)
     || null;
 
-  // Extract location - HarvestAPI nests it as { linkedinText, parsed: { city, country } }
+  // Industry: not directly in HarvestAPI — extract from headline or topSkills
+  const industry = item.industry
+    || null;
+
+  // Location: nested object with linkedinText
   const location = item.location?.linkedinText
     || item.location?.parsed?.text
     || (typeof item.location === 'string' ? item.location : null)
@@ -183,7 +198,7 @@ export function parseApifyItem(item: any): NewProspect {
     name,
     title,
     company,
-    industry: item.industry || null,
+    industry,
     linkedinUrl: item.linkedinUrl || item.linkedInUrl || item.url || item.profileUrl || null,
     headline: item.headline || null,
     summary: item.summary || item.about || null,
@@ -192,6 +207,21 @@ export function parseApifyItem(item: any): NewProspect {
     status: 'new',
     rawData: JSON.stringify(item),
   };
+}
+
+// Parse "CEO at Acme Corp" or "CEO | Acme Corp" from headline
+function extractCompanyFromHeadline(headline: string | undefined): string | null {
+  if (!headline) return null;
+  // Match patterns: "Title at Company", "Title | Company", "Title - Company"
+  const match = headline.match(/(?:\bat\b|[|–—-])\s*(.+?)$/i);
+  return match?.[1]?.trim() || null;
+}
+
+function extractTitleFromHeadline(headline: string | undefined): string | null {
+  if (!headline) return null;
+  // Extract everything before "at", "|", "–", "—", or "-"
+  const match = headline.match(/^(.+?)\s*(?:\bat\b|[|–—-])/i);
+  return match?.[1]?.trim() || null;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

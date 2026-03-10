@@ -6,5 +6,5 @@ export const scrapeRequestSchema = z.object({
   companyProfile: z.array(z.string()).default([]),
   companies: z.array(z.string()).default([]),
   locations: z.array(z.string()).default(['Brazil']),
-  maxResults: z.number().min(1).max(500).default(25),
+  maxResults: z.number().min(1).max(1000).default(50),
 });

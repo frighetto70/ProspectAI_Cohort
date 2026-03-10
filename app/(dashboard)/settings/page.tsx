@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -46,10 +46,22 @@ export default function SettingsPage() {
   const [companyProfile, setCompanyProfile] = useState('innovation\ndesign\nR&D\nproduct portfolio');
   const [companies, setCompanies] = useState('');
   const [locations, setLocations] = useState('Brazil');
-  const [maxResults, setMaxResults] = useState(25);
+  const [maxResults, setMaxResults] = useState(50);
   const [loading, setLoading] = useState(false);
   const [jobStatus, setJobStatus] = useState<JobStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [prospectCount, setProspectCount] = useState<number | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const fetchCount = useCallback(async () => {
+    try {
+      const res = await fetch('/api/prospects/manage');
+      const data = await res.json();
+      setProspectCount(data.count);
+    } catch { /* ignore */ }
+  }, []);
+
+  useEffect(() => { fetchCount(); }, [fetchCount]);
 
   const parseTextarea = (text: string) =>
     text
@@ -113,6 +125,7 @@ export default function SettingsPage() {
           setTimeout(poll, 3000);
         } else {
           setLoading(false);
+          fetchCount();
         }
       } catch {
         setError('Erro ao verificar status do job');
@@ -211,7 +224,7 @@ export default function SettingsPage() {
               value={maxResults}
               onChange={(e) => setMaxResults(Number(e.target.value))}
               min={1}
-              max={500}
+              max={1000}
               className="w-32"
             />
           </div>
@@ -267,6 +280,55 @@ export default function SettingsPage() {
               Busca falhou: {jobStatus.error || 'Erro desconhecido'}
             </div>
           )}
+        </CardContent>
+      </Card>
+      <Card className="max-w-2xl mt-6">
+        <CardHeader>
+          <CardTitle>Gerenciar Dados</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+            <div>
+              <p className="text-sm font-medium text-gray-700">Prospects no banco</p>
+              <p className="text-2xl font-bold text-[#1e3a5f]">
+                {prospectCount !== null ? prospectCount : '...'}
+              </p>
+              <p className="text-xs text-gray-500">Sem limite de armazenamento</p>
+            </div>
+            <div className="flex flex-col gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={async () => {
+                  window.location.href = '/api/export/csv';
+                }}
+              >
+                Exportar CSV
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-red-600 border-red-200 hover:bg-red-50"
+                disabled={deleting}
+                onClick={async () => {
+                  if (!confirm('Tem certeza que deseja apagar TODOS os prospects? Esta ação não pode ser desfeita.')) return;
+                  setDeleting(true);
+                  try {
+                    await fetch('/api/prospects/manage', { method: 'DELETE' });
+                    await fetchCount();
+                  } catch {
+                    setError('Erro ao limpar dados');
+                  }
+                  setDeleting(false);
+                }}
+              >
+                {deleting ? 'Apagando...' : 'Limpar Todos'}
+              </Button>
+            </div>
+          </div>
+          <p className="text-xs text-gray-500">
+            Exporte seus dados para CSV antes de limpar. A exportação inclui: Empresa, Contato, Cargo, Setor, Localização, LinkedIn URL e Status.
+          </p>
         </CardContent>
       </Card>
     </div>

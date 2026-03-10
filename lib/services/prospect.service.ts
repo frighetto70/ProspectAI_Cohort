@@ -82,6 +82,53 @@ export async function deleteProspect(id: number) {
   return { deleted: true };
 }
 
+export async function getProspectCount() {
+  const [result] = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(prospects);
+  return result.count;
+}
+
+export async function deleteAllProspects() {
+  await db.delete(interactions);
+  await db.delete(prospects);
+  return { deleted: true };
+}
+
+export async function deleteProspectsByStatus(status: string) {
+  const matching = await db
+    .select({ id: prospects.id })
+    .from(prospects)
+    .where(eq(prospects.status, status as ProspectStatus));
+
+  const ids = matching.map((p) => p.id);
+  if (ids.length > 0) {
+    for (const id of ids) {
+      await db.delete(interactions).where(eq(interactions.prospectId, id));
+    }
+    await db.delete(prospects).where(eq(prospects.status, status as ProspectStatus));
+  }
+  return { deleted: ids.length };
+}
+
+export async function getAllProspectsForExport() {
+  return db
+    .select({
+      id: prospects.id,
+      company: prospects.company,
+      name: prospects.name,
+      title: prospects.title,
+      industry: prospects.industry,
+      location: prospects.location,
+      headline: prospects.headline,
+      linkedinUrl: prospects.linkedinUrl,
+      status: prospects.status,
+      createdAt: prospects.createdAt,
+    })
+    .from(prospects)
+    .orderBy(prospects.company);
+}
+
 export async function getAdjacentProspectIds(id: number) {
   const [prev] = await db
     .select({ id: prospects.id })
